@@ -9,13 +9,31 @@ from ortools.sat.python import cp_model
 # the base of task assignment is converting it to slot-based / time-grain based assignment
 # every slot is present by its' start time and united durations
 
-class BaseSlotSerializer:
+class BaseSlot:
 
-    def __init__(self, unit=30):  # every slot present to 30 minutes time grains by default
-        pass
+    _Unit = 30*60           # every slot present to 30  minutes (30*60 seconds) time grains by default
+
+    def __init__(self, start_time):
+        if self.is_slot_serializable(start_time):
+            self.__start_time = start_time
+        else:
+            raise ValueError
 
     def is_slot_serializable(self, start_time):
+        if isinstance(start_time, datetime.datetime):
+            pass
+        else:
+            return False
+
+
+class BaseSlotSet:
+
+    def __init__(self, slot_array):
         pass
+
+    def __contains__(self, item):
+        pass
+
 
 
 class BaseTask:
@@ -47,7 +65,7 @@ class BaseTask:
     def slots(self):
         pass
 
-    def handover(self):
+    def soft_handover_times(self):
         pass
 
     '''flag which mean this task can skip some hard constraint,
@@ -135,10 +153,21 @@ class BaseSchedulingSolutionRecorder(cp_model.CpSolverSolutionCallback):
         return self.__solution_count
 
 
-def solve_task_scheduling(allow_unassigned=True, unassign_penalty_coeff=100, solve_time_limit=None):
-    model = cp_model.CpModel()
+class BaseSchedulingSolutionModeler:
 
-    solver = cp_model.CpSolver()
-    # Sets a time limit of solver
-    if solve_time_limit:
-        solver.parameters.max_time_in_seconds = solve_time_limit
+    def __init__(self, problem, allow_unassigned=True, unassign_penalty_coeff=100):
+        self.__problem = problem
+        self.__allow_unassigned = allow_unassigned
+        self.__unassign_penalty_coeff = unassign_penalty_coeff
+        self.model = cp_model.CpModel()
+        self.modeler()
+        self.solver = cp_model.CpSolver()
+
+    def modeler(self):
+        pass
+
+    def solve(self, solve_time_limit=None):
+        # Sets a time limit of solver
+        if solve_time_limit:
+            self.solver.parameters.max_time_in_seconds = solve_time_limit
+        self.solver.Solve(self.model)
