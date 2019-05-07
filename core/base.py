@@ -1,4 +1,4 @@
-import datetime
+import abc
 
 from ortools.sat.python import cp_model
 
@@ -9,21 +9,21 @@ from ortools.sat.python import cp_model
 # the base of task assignment is converting it to slot-based / time-grain based assignment
 # every slot is present by its' start time and united durations
 
-class BaseSlot:
+class BaseSlot(abc.ABC):
 
-    _Unit = 30*60           # every slot present to 30  minutes (30*60 seconds) time grains by default
+    @abc.abstractproperty
+    def __unit(self):  # every slot present to some unit of time grains
+        pass
 
-    def __init__(self, start_time):
+    def __init__(self, start_time):  # slot is recognized by its' start time
         if self.is_slot_serializable(start_time):
             self.__start_time = start_time
         else:
             raise ValueError
 
+    @abc.abstractmethod  # Slot class need check if the inputted start_time can be converted to a slot
     def is_slot_serializable(self, start_time):
-        if isinstance(start_time, datetime.datetime):
-            pass
-        else:
-            return False
+        pass
 
 
 class BaseSlotSet:
@@ -33,7 +33,6 @@ class BaseSlotSet:
 
     def __contains__(self, item):
         pass
-
 
 
 class BaseTask:
