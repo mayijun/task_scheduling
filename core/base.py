@@ -1,4 +1,5 @@
 import abc
+import numpy as np
 
 from ortools.sat.python import cp_model
 
@@ -12,14 +13,32 @@ from ortools.sat.python import cp_model
 class BaseSlot(abc.ABC):
 
     @abc.abstractproperty
-    def __unit(self):  # every slot present to some unit of time grains
+    def __unit(self):  # every slot present to some unit of time grains, should be datetime.timedelta
         pass
 
-    def __init__(self, start_time):  # slot is recognized by its' start time
+    def __init__(self, start_time):  # slot is recognized by its' start time (should be datetime.datetime)
         if self.is_slot_serializable(start_time):
             self.__start_time = start_time
         else:
             raise ValueError
+
+    def __sub__(self, other):  # return an int present number of slots between them
+        if type(other) == type(self):
+            return int((self.start_time() - other.start_time()) / self.__unit)
+        else:
+            raise TypeError
+
+    def __eq__(self, other):
+        if type(other) == type(self):
+            return self.start_time() == other.start_time()
+        else:
+            raise TypeError
+
+    def __hash__(self):
+        return self.__start_time
+
+    def start_time(self):
+        return self.__start_time
 
     @abc.abstractmethod  # Slot class need check if the inputted start_time can be converted to a slot
     def is_slot_serializable(self, start_time):
@@ -29,7 +48,7 @@ class BaseSlot(abc.ABC):
 class BaseSlotSet:
 
     def __init__(self, slot_array):
-        pass
+        self.__slot_set = slot_array
 
     def __contains__(self, item):
         pass
@@ -38,7 +57,7 @@ class BaseSlotSet:
 class BaseTask:
     # Base Class for all tasks. scheduling impacted information should defined here. all tasks use the same solver
 
-    def __init__(self, required_skills):
+    def __init__(self, required_skills, fix_after_assign=None):
         self.__required_skills = required_skills
 
     def id(self):
@@ -58,10 +77,9 @@ class BaseTask:
     def confirmed_appointment_start(self):
         pass
 
-    def durations(self):
-        pass
+    '''int number of required slots to complete this tasks'''
 
-    def slots(self):
+    def durations(self):
         pass
 
     def soft_handover_times(self):
@@ -73,11 +91,9 @@ class BaseTask:
     def hard_forced_assigned(self):
         pass
 
-    # this may lead to infeasible solution
-    '''
+    # be careful, this may lead to infeasible solution
     def soft_forced_assigned(self):
         pass
-    '''
 
     '''soft constraint, try to assign task to target worker if possible'''
 
@@ -87,7 +103,7 @@ class BaseTask:
     '''prevent task to be assigned to another worker'''
 
     def fixed(self):
-        now = datetime.datetime.now()
+        pass
 
     '''quantized task's difficulty which prevent workers from doing  multiple tasks in parallel,
     related to workers width'''
